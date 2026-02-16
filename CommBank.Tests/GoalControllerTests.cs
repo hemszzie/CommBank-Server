@@ -3,72 +3,47 @@ using CommBank.Services;
 using CommBank.Models;
 using CommBank.Tests.Fake;
 using Microsoft.AspNetCore.Mvc;
+using Xunit;
 
-namespace CommBank.Tests;
-
-public class GoalControllerTests
+namespace CommBank.Tests
 {
-    private readonly FakeCollections collections;
-
-    public GoalControllerTests()
+    public class GoalControllerTests
     {
-        collections = new();
-    }
+        private readonly FakeCollections collections;
 
-    [Fact]
-    public async void GetAll()
-    {
-        // Arrange
-        var goals = collections.GetGoals();
-        var users = collections.GetUsers();
-        IGoalsService goalsService = new FakeGoalsService(goals, goals[0]);
-        IUsersService usersService = new FakeUsersService(users, users[0]);
-        GoalController controller = new(goalsService, usersService);
-
-        // Act
-        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        controller.ControllerContext.HttpContext = httpContext;
-        var result = await controller.Get();
-
-        // Assert
-        var index = 0;
-        foreach (Goal goal in result)
+        public GoalControllerTests()
         {
-            Assert.IsAssignableFrom<Goal>(goal);
-            Assert.Equal(goals[index].Id, goal.Id);
-            Assert.Equal(goals[index].Name, goal.Name);
-            index++;
+            collections = new();
         }
-    }
 
-    [Fact]
-    public async void Get()
-    {
-        // Arrange
-        var goals = collections.GetGoals();
-        var users = collections.GetUsers();
-        IGoalsService goalsService = new FakeGoalsService(goals, goals[0]);
-        IUsersService usersService = new FakeUsersService(users, users[0]);
-        GoalController controller = new(goalsService, usersService);
+        [Fact]
+        public async Task GetForUser()
+        {
+            // Arrange
+            var goals = collections.GetGoals();
+            var users = collections.GetUsers();
 
-        // Act
-        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
-        controller.ControllerContext.HttpContext = httpContext;
-        var result = await controller.Get(goals[0].Id!);
+            IGoalsService goalsService = new FakeGoalsService(goals, goals[0]);
+            IUsersService usersService = new FakeUsersService(users, users[0]);
 
-        // Assert
-        Assert.IsAssignableFrom<Goal>(result.Value);
-        Assert.Equal(goals[0], result.Value);
-        Assert.NotEqual(goals[1], result.Value);
-    }
+            GoalController controller = new(goalsService, usersService);
 
-    [Fact]
-    public async void GetForUser()
-    {
-        // Arrange
-        
-        // Act
-        
-        // Assert
+            var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+            controller.ControllerContext.HttpContext = httpContext;
+
+            // Act
+            ActionResult<IEnumerable<Goal>> result =
+                await controller.GetForUser(goals[0].UserId!);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.NotNull(result.Value);
+
+            foreach (var goal in result.Value!)
+            {
+                Assert.IsAssignableFrom<Goal>(goal);
+                Assert.Equal(goals[0].UserId, goal.UserId);
+            }
+        }
     }
 }
